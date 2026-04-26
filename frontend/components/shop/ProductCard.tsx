@@ -40,8 +40,8 @@ export default function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <Link href={`/products/${product.slug}`} className="group block h-full">
-      <div className="card-hover h-full flex flex-col">
+    <Link href={`/products/${product.slug}`} className="group h-full flex flex-col">
+      <div className="card-hover flex-1 flex flex-col">
         {/* Image */}
         <div className="relative aspect-[4/5] overflow-hidden bg-cream-dark">
           {imageUrl && imageUrl !== "/placeholder-product.jpg" ? (

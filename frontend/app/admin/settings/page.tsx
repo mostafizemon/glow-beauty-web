@@ -38,6 +38,12 @@ export default function AdminSettingsPage() {
       {toast && <div className="fixed top-4 right-4 z-50 bg-charcoal text-white px-6 py-3 rounded-xl shadow-lg animate-fade-in text-sm">{toast}</div>}
       <h1 className="text-2xl font-bold text-charcoal mb-6">Settings</h1>
 
+      {/* Honeypot to trap aggressive browser password managers */}
+      <div style={{ display: 'none' }} aria-hidden="true">
+        <input type="text" name="dummy-email" />
+        <input type="password" name="dummy-password" />
+      </div>
+
       <div className="space-y-6">
         {/* Site Info */}
         <div className="bg-white rounded-xl border border-gray-100 p-6">
