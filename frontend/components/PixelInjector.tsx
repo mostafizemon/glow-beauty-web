@@ -37,15 +37,14 @@ export default function PixelInjector() {
     // We prioritize Admin Panel settings, then fallback to .env variables
     api.get<APIResponse<Record<string, string>>>("/api/settings/public")
       .then(res => {
-        const metaId = res.data?.meta_pixel_id || process.env.NEXT_PUBLIC_META_PIXEL_ID || "";
-        const tiktokId = res.data?.tiktok_pixel_id || process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || "";
+        const metaId = res.data?.meta_pixel_id || "";
+        const tiktokId = res.data?.tiktok_pixel_id || "";
         const metaTest = res.data?.meta_test_code || "";
         const tiktokTest = res.data?.tiktok_test_code || "";
         
-        console.log("[Pixels] Loaded configuration:", {
+        console.log("[Pixels] Loaded configuration from database:", {
           meta: metaId ? "Present" : "Missing",
-          tiktok: tiktokId ? "Present" : "Missing",
-          apiSource: "database"
+          tiktok: tiktokId ? "Present" : "Missing"
         });
 
         setPixels({
@@ -56,10 +55,10 @@ export default function PixelInjector() {
         });
       })
       .catch((err) => {
-        console.error("[Pixels] Failed to fetch settings from API, using env fallbacks:", err);
+        console.error("[Pixels] Error fetching settings, tracking disabled:", err);
         setPixels({
-          meta: process.env.NEXT_PUBLIC_META_PIXEL_ID || "",
-          tiktok: process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || "",
+          meta: "",
+          tiktok: "",
           metaTest: "",
           tiktokTest: "",
         });
