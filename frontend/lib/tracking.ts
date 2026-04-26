@@ -180,7 +180,8 @@ export function trackViewContent(
     {
       content_id: product.id,
       content_name: product.name,
-      content_type: product.category || "product",
+      // TikTok expects standardized content_type values (e.g. "product").
+      content_type: "product",
       price: product.price,
       quantity: 1,
     },
