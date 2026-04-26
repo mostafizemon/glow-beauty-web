@@ -31,6 +31,7 @@ services:
       DATABASE_URL: postgres://shopadmin:${DB_PASSWORD:-GlowBeauty2026!}@db:5432/shopdb?sslmode=disable
       JWT_SECRET: ${JWT_SECRET:-change-me-jwt-secret-production}
       ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET:-change-me-admin-jwt-secret-production}
+      CLOUDINARY_URL: ${CLOUDINARY_URL:-}
       PORT: 8080
       FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
     depends_on:
