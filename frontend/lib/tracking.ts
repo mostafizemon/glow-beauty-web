@@ -32,8 +32,12 @@ function ensureClientPixelQueues() {
   if (typeof window === "undefined") return;
 
   if (!window.fbq) {
-    const fbqShim = function () {
-      fbqShim.callMethod ? fbqShim.callMethod.apply(fbqShim, arguments) : fbqShim.queue.push(arguments);
+    const fbqShim = function (...args: unknown[]) {
+      if (fbqShim.callMethod) {
+        fbqShim.callMethod(...args);
+      } else {
+        fbqShim.queue.push(args);
+      }
     } as any;
     fbqShim.queue = [];
     window.fbq = fbqShim;
@@ -57,8 +61,8 @@ function ensureClientPixelQueues() {
       "disableCookie",
     ];
     ttqShim.setAndDefer = function (target: any, method: string) {
-      target[method] = function () {
-        target.push([method].concat(Array.prototype.slice.call(arguments, 0)));
+      target[method] = function (...args: unknown[]) {
+        target.push([method, ...args]);
       };
     };
     for (let i = 0; i < ttqShim.methods.length; i++) {
