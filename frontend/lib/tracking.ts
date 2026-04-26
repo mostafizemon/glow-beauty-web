@@ -44,31 +44,8 @@ function ensureClientPixelQueues() {
   }
 
   if (!window.ttq) {
-    const ttqShim: any = [];
-    ttqShim.methods = [
-      "page",
-      "track",
-      "identify",
-      "instances",
-      "debug",
-      "on",
-      "off",
-      "once",
-      "ready",
-      "alias",
-      "group",
-      "enableCookie",
-      "disableCookie",
-    ];
-    ttqShim.setAndDefer = function (target: any, method: string) {
-      target[method] = function (...args: unknown[]) {
-        target.push([method, ...args]);
-      };
-    };
-    for (let i = 0; i < ttqShim.methods.length; i++) {
-      ttqShim.setAndDefer(ttqShim, ttqShim.methods[i]);
-    }
-    window.ttq = ttqShim;
+    // If TikTok isn't loaded yet, we don't shim it here to avoid conflicts.
+    // PixelInjector will handle the official TikTok initialization.
   }
 }
 
