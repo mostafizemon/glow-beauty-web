@@ -115,10 +115,12 @@ export default function PixelInjector() {
           dangerouslySetInnerHTML={{
             __html: `
               if (window.ttq && !window._ttq_loaded) {
-                ttq.load('${pixels.tiktok}');
+                ttq.load('${pixels.tiktok}', {
+                  ${pixels.tiktokTest ? `test_event_code: '${pixels.tiktokTest}'` : ""}
+                });
                 ttq.page();
                 window._ttq_loaded = true;
-                console.log("[Pixels] TikTok Browser Pixel Initialized and PageView fired for ID: ${pixels.tiktok}");
+                console.log("[Pixels] TikTok Browser Pixel Initialized for ID: ${pixels.tiktok}${pixels.tiktokTest ? ` (Test Mode: ${pixels.tiktokTest})` : ""}");
               }
             `,
           }}
