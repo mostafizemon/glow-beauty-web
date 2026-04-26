@@ -1,0 +1,105 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable prefer-rest-params */
+/* eslint-disable prefer-spread */
+/* eslint-disable @typescript-eslint/no-unused-expressions */
+"use client";
+
+import { useEffect, useState } from "react";
+import Script from "next/script";
+import api, { APIResponse } from "@/lib/api";
+
+export default function PixelInjector() {
+  const [pixels, setPixels] = useState<{ meta: string; tiktok: string; metaTest: string; tiktokTest: string } | null>(null);
+
+  useEffect(() => {
+    // Stubs for early tracking events before the script is fully mounted
+    if (typeof window !== "undefined") {
+      if (!window.fbq) {
+        window.fbq = function () {
+          window.fbq.callMethod ? window.fbq.callMethod.apply(window.fbq, arguments) : window.fbq.queue.push(arguments);
+        } as any;
+        window.fbq.queue = [];
+      }
+      
+      if (!window.ttq) {
+        window.ttq = [] as any;
+        window.ttq.methods = ["page", "track", "identify", "instances", "debug", "on", "off", "once", "ready", "alias", "group", "enableCookie", "disableCookie"];
+        window.ttq.setAndDefer = function (t: any, e: any) {
+          t[e] = function () { t.push([e].concat(Array.prototype.slice.call(arguments, 0))); };
+        };
+        for (let i = 0; i < window.ttq.methods.length; i++) {
+          window.ttq.setAndDefer(window.ttq, window.ttq.methods[i]);
+        }
+      }
+    }
+
+    // Fetch dynamic pixel IDs from the server
+    // We prioritize Admin Panel settings, then fallback to .env variables
+    api.get<APIResponse<Record<string, string>>>("/api/settings/public")
+      .then(res => {
+        const metaId = res.data?.meta_pixel_id || process.env.NEXT_PUBLIC_META_PIXEL_ID || "";
+        const tiktokId = res.data?.tiktok_pixel_id || process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || "";
+        const metaTest = res.data?.meta_test_code || "";
+        const tiktokTest = res.data?.tiktok_test_code || "";
+        
+        setPixels({
+          meta: metaId,
+          tiktok: tiktokId,
+          metaTest,
+          tiktokTest,
+        });
+      })
+      .catch((err) => {
+        console.error("Failed to fetch pixel settings, using env fallbacks", err);
+        setPixels({
+          meta: process.env.NEXT_PUBLIC_META_PIXEL_ID || "",
+          tiktok: process.env.NEXT_PUBLIC_TIKTOK_PIXEL_ID || "",
+          metaTest: "",
+          tiktokTest: "",
+        });
+      });
+  }, []);
+
+  if (!pixels) return null;
+
+  return (
+    <>
+      {/* Meta Pixel injected only if configured */}
+      {pixels.meta && (
+        <Script
+          id="meta-pixel"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function(f,b,e,v,n,t,s)
+              {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+              n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+              if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+              n.queue=[];t=b.createElement(e);t.async=!0;
+              t.src=v;s=b.getElementsByTagName(e)[0];
+              s.parentNode.insertBefore(t,s)}(window, document,'script',
+              'https://connect.facebook.net/en_US/fbevents.js');
+              fbq('init', '${pixels.meta}');
+            `,
+          }}
+        />
+      )}
+
+      {/* TikTok Pixel injected only if configured */}
+      {pixels.tiktok && (
+        <Script
+          id="tiktok-pixel"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              !function (w, d, t) {
+                w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var i="https://analytics.tiktok.com/i18n/pixel/events.js";ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=i,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=i+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)};
+                ttq.load('${pixels.tiktok}', { test_event_code: '${pixels.tiktokTest}' });
+              }(window, document, 'ttq');
+            `,
+          }}
+        />
+      )}
+    </>
+  );
+}
