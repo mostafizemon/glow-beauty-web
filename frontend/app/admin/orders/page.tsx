@@ -20,9 +20,11 @@ export default function AdminOrdersPage() {
   const [activeTab, setActiveTab] = useState("all");
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchOrders = useCallback(async () => {
-    setLoading(true);
+  const fetchOrders = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
+    else setRefreshing(true);
     try {
       const params: Record<string, string> = { page: String(page), limit: "20" };
       if (activeTab !== "all") params.status = activeTab;
@@ -30,20 +32,26 @@ export default function AdminOrdersPage() {
       setOrders(res.data || []);
       setTotal(res.total);
     } catch { setOrders([]); }
-    setLoading(false);
+    if (showLoader) setLoading(false);
+    else setRefreshing(false);
   }, [page, activeTab]);
 
-  useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => { fetchOrders(true); }, [fetchOrders]);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
-    const interval = setInterval(fetchOrders, 30000);
+    const interval = setInterval(() => {
+      fetchOrders(false);
+    }, 30000);
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-charcoal mb-6">Orders</h1>
+      {refreshing && (
+        <p className="text-xs text-charcoal-lighter mb-3">Refreshing orders...</p>
+      )}
 
       {/* Status tabs */}
       <div className="flex flex-wrap gap-2 mb-6">
