@@ -110,11 +110,11 @@ export default function AdminSettingsPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="input-label">Pixel ID</label>
-              <input value={settings.tiktok_pixel_id || ""} onChange={e => updateField("tiktok_pixel_id", e.target.value)} className="input font-mono" placeholder="XXXXXXXXXXXXXXX" />
+              <input autoComplete="off" value={settings.tiktok_pixel_id || ""} onChange={e => updateField("tiktok_pixel_id", e.target.value)} className="input font-mono" placeholder="XXXXXXXXXXXXXXX" />
             </div>
             <div>
               <label className="input-label">Access Token</label>
-              <input value={settings.tiktok_access_token || ""} onChange={e => updateField("tiktok_access_token", e.target.value)} className="input font-mono text-xs" placeholder="Server-side token" type="password" />
+              <input autoComplete="new-password" value={settings.tiktok_access_token || ""} onChange={e => updateField("tiktok_access_token", e.target.value)} className="input font-mono text-xs" placeholder="Server-side token" type="password" />
             </div>
             <div className="md:col-span-2">
               <label className="input-label">Test Event Code</label>
@@ -136,7 +136,7 @@ export default function AdminSettingsPage() {
             </div>
             <div>
               <label className="input-label">Access Token</label>
-              <input value={settings.meta_access_token || ""} onChange={e => updateField("meta_access_token", e.target.value)} className="input font-mono text-xs" placeholder="Conversions API token" type="password" />
+              <input autoComplete="new-password" value={settings.meta_access_token || ""} onChange={e => updateField("meta_access_token", e.target.value)} className="input font-mono text-xs" placeholder="Conversions API token" type="password" />
             </div>
             <div className="md:col-span-2">
               <label className="input-label">Test Event Code</label>

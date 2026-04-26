@@ -40,8 +40,8 @@ export default function ProductCard({ product }: { product: Product }) {
   };
 
   return (
-    <Link href={`/products/${product.slug}`} className="group block">
-      <div className="card-hover">
+    <Link href={`/products/${product.slug}`} className="group block h-full">
+      <div className="card-hover h-full flex flex-col">
         {/* Image */}
         <div className="relative aspect-[4/5] overflow-hidden bg-cream-dark">
           {imageUrl && imageUrl !== "/placeholder-product.jpg" ? (
@@ -69,12 +69,12 @@ export default function ProductCard({ product }: { product: Product }) {
         </div>
 
         {/* Info */}
-        <div className="p-3 md:p-4">
-          <h3 className="text-sm font-medium text-charcoal line-clamp-2 leading-snug mb-1.5 group-hover:text-rose-gold transition-colors">
+        <div className="p-3 md:p-4 flex flex-col flex-grow">
+          <h3 className="text-sm font-medium text-charcoal line-clamp-2 leading-snug mb-2 group-hover:text-rose-gold transition-colors min-h-[2.5rem]">
             {product.name}
           </h3>
 
-          <div className="flex items-center gap-2 mb-3">
+          <div className="flex items-center gap-2 mb-3 mt-auto">
             <span className="text-base font-bold text-rose-gold">
               ৳{product.price.toLocaleString()}
             </span>
