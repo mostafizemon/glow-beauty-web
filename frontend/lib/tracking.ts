@@ -160,9 +160,8 @@ export function trackPageView(userData?: UserData) {
 
   const eventId = uuidv4();
 
-  // Client-side
   if (typeof window !== "undefined") {
-    if (window.ttq) window.ttq.track("PageView", {}, { event_id: eventId });
+    if (window.ttq) window.ttq.page({ event_id: eventId });
     if (window.fbq) window.fbq("track", "PageView", {}, { eventID: eventId });
   }
 
