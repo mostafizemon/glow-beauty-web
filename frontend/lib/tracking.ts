@@ -28,6 +28,46 @@ interface UserData {
   [key: string]: unknown;
 }
 
+function ensureClientPixelQueues() {
+  if (typeof window === "undefined") return;
+
+  if (!window.fbq) {
+    const fbqShim = function () {
+      fbqShim.callMethod ? fbqShim.callMethod.apply(fbqShim, arguments) : fbqShim.queue.push(arguments);
+    } as any;
+    fbqShim.queue = [];
+    window.fbq = fbqShim;
+  }
+
+  if (!window.ttq) {
+    const ttqShim: any = [];
+    ttqShim.methods = [
+      "page",
+      "track",
+      "identify",
+      "instances",
+      "debug",
+      "on",
+      "off",
+      "once",
+      "ready",
+      "alias",
+      "group",
+      "enableCookie",
+      "disableCookie",
+    ];
+    ttqShim.setAndDefer = function (target: any, method: string) {
+      target[method] = function () {
+        target.push([method].concat(Array.prototype.slice.call(arguments, 0)));
+      };
+    };
+    for (let i = 0; i < ttqShim.methods.length; i++) {
+      ttqShim.setAndDefer(ttqShim, ttqShim.methods[i]);
+    }
+    window.ttq = ttqShim;
+  }
+}
+
 function getCookieValue(name: string): string {
   if (typeof document === "undefined") return "";
   const prefix = `${name}=`;
@@ -101,6 +141,8 @@ async function sendServerEvent(
 
 export function trackPageView(userData?: UserData) {
   if (typeof window !== "undefined") {
+    ensureClientPixelQueues();
+
     // Prevent duplicate PageView fires for the same URL in a short window.
     const dedupKey = `__gbg_pageview__${window.location.pathname}${window.location.search}`;
     const now = Date.now();
@@ -128,6 +170,7 @@ export function trackViewContent(
   product: { id: string; name: string; price: number; category?: string },
   userData?: UserData
 ) {
+  ensureClientPixelQueues();
   const eventId = uuidv4();
   const contents: TrackContent[] = [
     {
@@ -164,6 +207,7 @@ export function trackAddToCart(
   quantity: number,
   userData?: UserData
 ) {
+  ensureClientPixelQueues();
   const eventId = uuidv4();
   const value = product.price * quantity;
   const contents: TrackContent[] = [
@@ -191,6 +235,7 @@ export function trackInitiateCheckout(
   total: number,
   userData?: UserData
 ) {
+  ensureClientPixelQueues();
   const eventId = uuidv4();
   const contents: TrackContent[] = items.map((item) => ({
     content_id: item.id,
@@ -216,6 +261,7 @@ export function trackInitiateCheckout(
 }
 
 export function trackSearch(query: string, userData?: UserData) {
+  ensureClientPixelQueues();
   const eventId = uuidv4();
 
   if (typeof window !== "undefined") {
