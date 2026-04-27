@@ -136,9 +136,15 @@ export function trackPageView(userData?: UserData) {
   }
 
   const eventId = uuidv4();
+  const ttTestCode = typeof window !== "undefined" ? (window as any).__tt_test_code : "";
 
   if (typeof window !== "undefined") {
-    if (window.ttq) window.ttq.page({ event_id: eventId });
+    if (window.ttq) {
+      window.ttq.page({ 
+        event_id: eventId,
+        ...(ttTestCode ? { test_event_code: ttTestCode } : {})
+      });
+    }
     if (window.fbq) window.fbq("track", "PageView", {}, { eventID: eventId });
   }
 
@@ -152,6 +158,8 @@ export function trackViewContent(
 ) {
   ensureClientPixelQueues();
   const eventId = uuidv4();
+  const ttTestCode = typeof window !== "undefined" ? (window as any).__tt_test_code : "";
+
   const contents: TrackContent[] = [
     {
       content_id: product.id,
@@ -169,7 +177,10 @@ export function trackViewContent(
       window.ttq.track(
         "ViewContent",
         { contents, value: Number(product.price) || 0, currency: "BDT" },
-        { event_id: eventId }
+        { 
+          event_id: eventId,
+          ...(ttTestCode ? { test_event_code: ttTestCode } : {})
+        }
       );
     if (window.fbq)
       window.fbq(
@@ -190,6 +201,7 @@ export function trackAddToCart(
 ) {
   ensureClientPixelQueues();
   const eventId = uuidv4();
+  const ttTestCode = typeof window !== "undefined" ? (window as any).__tt_test_code : "";
   const value = product.price * quantity;
   const contents: TrackContent[] = [
     {
@@ -203,7 +215,14 @@ export function trackAddToCart(
 
   if (typeof window !== "undefined") {
     if (window.ttq)
-      window.ttq.track("AddToCart", { contents, value, currency: "BDT" }, { event_id: eventId });
+      window.ttq.track(
+        "AddToCart", 
+        { contents, value, currency: "BDT" }, 
+        { 
+          event_id: eventId,
+          ...(ttTestCode ? { test_event_code: ttTestCode } : {})
+        }
+      );
     if (window.fbq)
       window.fbq("track", "AddToCart", { content_ids: [product.id], value, currency: "BDT" }, { eventID: eventId });
   }
@@ -218,6 +237,7 @@ export function trackInitiateCheckout(
 ) {
   ensureClientPixelQueues();
   const eventId = uuidv4();
+  const ttTestCode = typeof window !== "undefined" ? (window as any).__tt_test_code : "";
   const contents: TrackContent[] = items.map((item) => ({
     content_id: item.id,
     content_name: item.name,
@@ -228,7 +248,14 @@ export function trackInitiateCheckout(
 
   if (typeof window !== "undefined") {
     if (window.ttq)
-      window.ttq.track("InitiateCheckout", { contents, value: total, currency: "BDT" }, { event_id: eventId });
+      window.ttq.track(
+        "InitiateCheckout", 
+        { contents, value: total, currency: "BDT" }, 
+        { 
+          event_id: eventId,
+          ...(ttTestCode ? { test_event_code: ttTestCode } : {})
+        }
+      );
     if (window.fbq)
       window.fbq(
         "track",
@@ -244,11 +271,59 @@ export function trackInitiateCheckout(
 export function trackSearch(query: string, userData?: UserData) {
   ensureClientPixelQueues();
   const eventId = uuidv4();
+  const ttTestCode = typeof window !== "undefined" ? (window as any).__tt_test_code : "";
 
   if (typeof window !== "undefined") {
-    if (window.ttq) window.ttq.track("Search", { query }, { event_id: eventId });
+    if (window.ttq) window.ttq.track("Search", { query }, { 
+      event_id: eventId,
+      ...(ttTestCode ? { test_event_code: ttTestCode } : {})
+    });
     if (window.fbq) window.fbq("track", "Search", { search_string: query }, { eventID: eventId });
   }
 
   sendServerEvent("Search", eventId, { userData });
 }
+
+export function trackPurchase(
+  items: { id: string; name: string; price: number; quantity: number }[],
+  total: number,
+  userData?: UserData,
+  existingEventId?: string
+) {
+  ensureClientPixelQueues();
+  const eventId = existingEventId || uuidv4();
+  const ttTestCode = typeof window !== "undefined" ? (window as any).__tt_test_code : "";
+
+  const contents: TrackContent[] = items.map((item) => ({
+    content_id: item.id,
+    content_name: item.name,
+    content_type: "product",
+    price: Number(item.price) || 0,
+    quantity: item.quantity,
+  }));
+
+  // Client-side fire (if browsing)
+  if (typeof window !== "undefined") {
+    if (window.ttq)
+      window.ttq.track(
+        "Purchase",
+        { contents, value: total, currency: "BDT" },
+        { 
+          event_id: eventId,
+          ...(ttTestCode ? { test_event_code: ttTestCode } : {})
+        }
+      );
+    if (window.fbq)
+      window.fbq(
+        "track",
+        "Purchase",
+        { content_ids: items.map((i) => i.id), value: total, currency: "BDT" },
+        { eventID: eventId }
+      );
+  }
+
+  // Note: We don't call sendServerEvent here because Purchase is traditionally 
+  // handled by the backend order confirmation flow in this app.
+  console.log(`[Tracking] Client-side Purchase fired: ${eventId}`);
+}
+

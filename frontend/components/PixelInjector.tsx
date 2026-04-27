@@ -53,6 +53,12 @@ export default function PixelInjector() {
           metaTest,
           tiktokTest,
         });
+
+        // Store test codes globally for the tracking library to access
+        if (typeof window !== "undefined") {
+          (window as any).__tt_test_code = tiktokTest;
+          (window as any).__fb_test_code = metaTest;
+        }
       })
       .catch((err) => {
         console.error("[Pixels] Error fetching settings, tracking disabled:", err);
@@ -118,7 +124,7 @@ export default function PixelInjector() {
                 ttq.load('${pixels.tiktok}', {
                   ${pixels.tiktokTest ? `test_event_code: '${pixels.tiktokTest}'` : ""}
                 });
-                ttq.page();
+                // We let PixelProvider handle ttq.page() to keep event_ids consistent
                 window._ttq_loaded = true;
                 console.log("[Pixels] TikTok Browser Pixel Initialized for ID: ${pixels.tiktok}${pixels.tiktokTest ? ` (Test Mode: ${pixels.tiktokTest})` : ""}");
               }
