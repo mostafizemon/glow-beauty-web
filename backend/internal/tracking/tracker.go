@@ -238,6 +238,7 @@ func (t *Tracker) fireTikTok(ctx context.Context, eventName string, eventID *uui
 		}
 	}
 
+	log.Printf("DEBUG: TIKTOK sending: event_name=%s event_id=%s", eventName, eventID.String())
 	properties := map[string]interface{}{}
 	if len(req.Contents) > 0 {
 		properties["contents"] = req.Contents

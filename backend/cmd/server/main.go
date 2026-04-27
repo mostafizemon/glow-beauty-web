@@ -114,7 +114,7 @@ func main() {
 		req.UserAgent = r.UserAgent()
 		req.ClientIP = extractClientIP(r)
 		
-		log.Printf("DEBUG: Tracking bridge received event: %s", req.EventName)
+		log.Printf("DEBUG: TRACK bridge received: event_name=%s event_id=%s", req.EventName, req.EventID)
 		go tracker.TrackEvent(context.Background(), req)
 
 		w.Header().Set("Content-Type", "application/json")
