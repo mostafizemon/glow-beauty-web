@@ -6,16 +6,14 @@ import Link from "next/link";
 import api, { APIResponse } from "@/lib/api";
 import { useAuth } from "@/lib/hooks/useAuth";
 
-import { trackPurchase } from "@/lib/tracking";
-
 interface OrderItem {
-  id: string; product_id?: string; product_name: string; variant_name: string;
+  id: string; product_name: string; variant_name: string;
   unit_price: number; quantity: number; subtotal: number; image_url: string;
 }
 interface Order {
   id: string; order_number: string; customer_name: string; customer_phone: string;
   subtotal: number; delivery_charge: number; total: number; status: string;
-  items: OrderItem[]; created_at: string; event_id?: string;
+  items: OrderItem[]; created_at: string;
 }
 
 export default function OrderSuccessPage() {
@@ -31,27 +29,7 @@ export default function OrderSuccessPage() {
       api.get<APIResponse<Record<string, string>>>("/api/settings/public"),
     ])
       .then(([orderRes, settingsRes]) => {
-        if (orderRes.success && orderRes.data) {
-          const orderData = orderRes.data;
-          setOrder(orderData);
-
-          // Track Purchase on arrival
-          const dedupKey = `__gbg_purchase_tracked_${orderData.id}`;
-          if (!sessionStorage.getItem(dedupKey)) {
-            trackPurchase(
-              orderData.items.map(i => ({
-                id: i.product_id || "",
-                name: i.product_name,
-                price: i.unit_price,
-                quantity: i.quantity
-              })),
-              orderData.total,
-              { phone: orderData.customer_phone, name: orderData.customer_name },
-              orderData.event_id
-            );
-            sessionStorage.setItem(dedupKey, "true");
-          }
-        }
+        if (orderRes.success && orderRes.data) setOrder(orderRes.data);
         if (settingsRes.success && settingsRes.data?.contact_phone) {
           setContactPhone(settingsRes.data.contact_phone);
         }
