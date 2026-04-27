@@ -126,6 +126,7 @@ export default function PixelInjector() {
                 });
                 // We let PixelProvider handle ttq.page() to keep event_ids consistent
                 window._ttq_loaded = true;
+                window.dispatchEvent(new Event("gbg:pixels-ready"));
                 console.log("[Pixels] TikTok Browser Pixel Initialized for ID: ${pixels.tiktok}${pixels.tiktokTest ? ` (Test Mode: ${pixels.tiktokTest})` : ""}");
               }
             `,

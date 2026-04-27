@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"regexp"
 	"strings"
@@ -19,8 +20,8 @@ import (
 	"glow-beauty-goals/internal/models"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Tracker handles multi-platform pixel events (TikTok + Meta).
@@ -62,18 +63,31 @@ func (t *Tracker) FirePurchase(ctx context.Context, order *models.Order) {
 	// Format contents for pixel APIs
 	var contents []models.TrackContent
 	for _, item := range order.Items {
+		contentID := ""
+		if item.ProductID != nil {
+			contentID = item.ProductID.String()
+		}
 		contents = append(contents, models.TrackContent{
-			ContentID:   item.ProductID.String(),
+			ContentID:   contentID,
 			ContentName: item.ProductName,
+			ContentType: "product",
 			Quantity:    item.Quantity,
 			Price:       item.UnitPrice,
 		})
 	}
 
+	value := order.Total
+	if _, ok := normalizeMonetaryValue(value); !ok {
+		value = 0
+		for _, item := range order.Items {
+			value += item.Subtotal
+		}
+	}
+
 	req := models.TrackEventRequest{
 		EventName: "Purchase",
 		EventID:   eventID.String(),
-		Value:     order.Total,
+		Value:     value,
 		Currency:  "BDT",
 		Contents:  contents,
 		UserData: map[string]interface{}{
@@ -166,6 +180,21 @@ func eventUsesMonetaryValue(eventName string) bool {
 	}
 }
 
+func normalizeMonetaryValue(value float64) (float64, bool) {
+	if math.IsNaN(value) || math.IsInf(value, 0) || value <= 0 {
+		return 0, false
+	}
+	return math.Round(value*100) / 100, true
+}
+
+func normalizeCurrency(currency string) string {
+	currency = strings.ToUpper(strings.TrimSpace(currency))
+	if currency == "" {
+		return "BDT"
+	}
+	return currency
+}
+
 // fireTikTok sends an event to TikTok Events API.
 func (t *Tracker) fireTikTok(ctx context.Context, eventName string, eventID *uuid.UUID, orderID *uuid.UUID, req models.TrackEventRequest) {
 	// Create a background-safe context that isn't canceled when the request finishes
@@ -242,11 +271,29 @@ func (t *Tracker) fireTikTok(ctx context.Context, eventName string, eventID *uui
 	properties := map[string]interface{}{}
 	if len(req.Contents) > 0 {
 		properties["contents"] = req.Contents
+		properties["content_type"] = "product"
+
+		contentIDs := make([]string, 0, len(req.Contents))
+		quantity := 0
+		for _, content := range req.Contents {
+			if strings.TrimSpace(content.ContentID) != "" {
+				contentIDs = append(contentIDs, strings.TrimSpace(content.ContentID))
+			}
+			if content.Quantity > 0 {
+				quantity += content.Quantity
+			}
+		}
+		if len(contentIDs) > 0 {
+			properties["content_ids"] = contentIDs
+		}
+		if quantity > 0 {
+			properties["quantity"] = quantity
+		}
 	}
 	if eventUsesMonetaryValue(eventName) && req.Value > 0 {
-		properties["value"] = req.Value
-		if req.Currency != "" {
-			properties["currency"] = req.Currency
+		if value, ok := normalizeMonetaryValue(req.Value); ok {
+			properties["value"] = value
+			properties["currency"] = normalizeCurrency(req.Currency)
 		}
 	}
 
@@ -258,6 +305,19 @@ func (t *Tracker) fireTikTok(ctx context.Context, eventName string, eventID *uui
 	}
 	if len(properties) > 0 {
 		eventData["properties"] = properties
+	}
+
+	if strings.EqualFold(strings.TrimSpace(eventName), "purchase") {
+		if _, ok := properties["value"]; !ok {
+			payload := map[string]interface{}{
+				"event_source":    "web",
+				"event_source_id": pixelID,
+				"data":            []interface{}{eventData},
+			}
+			t.logTrackingEvent(bgCtx, eventID, eventName, "tiktok", orderID, payload, "error", "invalid purchase value")
+			log.Printf("TikTok Purchase skipped — invalid value: %v (event_id=%s)", req.Value, eventID.String())
+			return
+		}
 	}
 
 	payload := map[string]interface{}{

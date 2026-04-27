@@ -13,6 +13,9 @@ declare global {
   interface Window {
     ttq: any;
     fbq: any;
+    _ttq_loaded?: boolean;
+    __tt_test_code?: string;
+    __fb_test_code?: string;
   }
 }
 
@@ -80,6 +83,59 @@ function captureTtclidFromUrl() {
   }
 }
 
+function validValue(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  return Math.round(value * 100) / 100;
+}
+
+function buildTikTokProductPayload(contents: TrackContent[], value: number, currency: string) {
+  const contentIds = contents.map((item) => item.content_id).filter(Boolean);
+  const quantity = contents.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  const normalizedValue = validValue(value);
+
+  return {
+    contents,
+    content_ids: contentIds,
+    content_type: "product",
+    ...(quantity > 0 ? { quantity } : {}),
+    ...(normalizedValue > 0 ? { value: normalizedValue, currency } : {}),
+  };
+}
+
+function fireTikTokPageViewWhenReady(eventId: string, ttTestCode: string) {
+  if (typeof window === "undefined") return Promise.resolve(false);
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const fire = () => {
+      if (settled) return;
+      settled = true;
+      if (window.ttq && typeof window.ttq.page === "function") {
+        window.ttq.page({
+          event_id: eventId,
+          ...(ttTestCode ? { test_event_code: ttTestCode } : {}),
+        });
+        resolve(true);
+        return;
+      }
+      resolve(false);
+    };
+
+    if (window._ttq_loaded) {
+      fire();
+      return;
+    }
+
+    const onReady = () => fire();
+    window.addEventListener("gbg:pixels-ready", onReady, { once: true });
+
+    window.setTimeout(() => {
+      window.removeEventListener("gbg:pixels-ready", onReady);
+      fire();
+    }, 5000);
+  });
+}
+
 // Send to backend tracking bridge
 async function sendServerEvent(
   eventName: string,
@@ -124,7 +180,7 @@ async function sendServerEvent(
   }
 }
 
-export function trackPageView(userData?: UserData) {
+export function trackPageView() {
   if (typeof window !== "undefined") {
     ensureClientPixelQueues();
 
@@ -140,20 +196,12 @@ export function trackPageView(userData?: UserData) {
   }
 
   const eventId = uuidv4();
-  const ttTestCode = typeof window !== "undefined" ? (window as any).__tt_test_code : "";
+  const ttTestCode = typeof window !== "undefined" ? window.__tt_test_code : "";
 
   if (typeof window !== "undefined") {
-    if (window.ttq) {
-      window.ttq.page({ 
-        event_id: eventId,
-        ...(ttTestCode ? { test_event_code: ttTestCode } : {})
-      });
-    }
+    void fireTikTokPageViewWhenReady(eventId, ttTestCode || "");
     if (window.fbq) window.fbq("track", "PageView", {}, { eventID: eventId });
   }
-
-  // Server-side
-  sendServerEvent("PageView", eventId, { userData });
 }
 
 export function trackViewContent(
@@ -180,7 +228,7 @@ export function trackViewContent(
     if (window.ttq)
       window.ttq.track(
         "ViewContent",
-        { contents, value: Number(product.price) || 0, currency: "BDT" },
+        buildTikTokProductPayload(contents, Number(product.price) || 0, "BDT"),
         { 
           event_id: eventId,
           ...(ttTestCode ? { test_event_code: ttTestCode } : {})
@@ -221,7 +269,7 @@ export function trackAddToCart(
     if (window.ttq)
       window.ttq.track(
         "AddToCart", 
-        { contents, value, currency: "BDT" }, 
+        buildTikTokProductPayload(contents, value, "BDT"),
         { 
           event_id: eventId,
           ...(ttTestCode ? { test_event_code: ttTestCode } : {})
@@ -254,7 +302,7 @@ export function trackInitiateCheckout(
     if (window.ttq)
       window.ttq.track(
         "InitiateCheckout", 
-        { contents, value: total, currency: "BDT" }, 
+        buildTikTokProductPayload(contents, total, "BDT"),
         { 
           event_id: eventId,
           ...(ttTestCode ? { test_event_code: ttTestCode } : {})
@@ -278,7 +326,7 @@ export function trackSearch(query: string, userData?: UserData) {
   const ttTestCode = typeof window !== "undefined" ? (window as any).__tt_test_code : "";
 
   if (typeof window !== "undefined") {
-    if (window.ttq) window.ttq.track("Search", { query }, { 
+    if (window.ttq) window.ttq.track("Search", { search_string: query }, { 
       event_id: eventId,
       ...(ttTestCode ? { test_event_code: ttTestCode } : {})
     });
@@ -311,7 +359,7 @@ export function trackPurchase(
     if (window.ttq)
       window.ttq.track(
         "Purchase",
-        { contents, value: total, currency: "BDT" },
+        buildTikTokProductPayload(contents, total, "BDT"),
         { 
           event_id: eventId,
           ...(ttTestCode ? { test_event_code: ttTestCode } : {})
@@ -330,4 +378,3 @@ export function trackPurchase(
   // handled by the backend order confirmation flow in this app.
   console.log(`[Tracking] Client-side Purchase fired: ${eventId}`);
 }
-
