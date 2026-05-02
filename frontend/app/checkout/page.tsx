@@ -23,6 +23,13 @@ interface Product {
   variants: { id: string; name: string; value: string; price_delta: number }[];
 }
 
+interface PurchaseItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+}
+
 function CheckoutContent() {
   const searchParams = useSearchParams();
   const buyNowSlug = searchParams.get("buyNowSlug");
@@ -94,6 +101,15 @@ function CheckoutContent() {
   const freeAbove = parseFloat(settings?.delivery_free_above || "0");
   const actualDelivery = freeAbove > 0 && displaySubtotal >= freeAbove ? 0 : deliveryCharge;
   const total = displaySubtotal + actualDelivery;
+  const purchaseItems: PurchaseItem[] = displayItems.map(item => {
+    const price = (item.product?.price || 0) + (item.variant?.price_delta || 0);
+    return {
+      id: item.product_id,
+      name: item.product?.name || "",
+      price,
+      quantity: item.quantity,
+    };
+  });
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
@@ -112,6 +128,7 @@ function CheckoutContent() {
               buyNowProduct={isBuyNowMode ? buyNowItem.product_id : undefined}
               buyNowVariant={isBuyNowMode ? buyNowItem.variant_id : undefined}
               buyNowQty={isBuyNowMode ? buyNowItem.quantity : undefined}
+              purchaseItems={purchaseItems}
             />
           </div>
         </div>

@@ -219,43 +219,10 @@ func (h *AdminOrdersHandler) ConfirmOrder(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	// Load full order for pixel firing
-	var order models.Order
-	_ = h.pool.QueryRow(r.Context(),
-		`SELECT id, order_number, customer_id, customer_name, customer_phone, customer_email,
-		        delivery_address, client_ip, user_agent, delivery_charge,
-		        subtotal, discount_amount, total, status
-		 FROM orders WHERE id = $1`, orderID,
-	).Scan(&order.ID, &order.OrderNumber, &order.CustomerID,
-		&order.CustomerName, &order.CustomerPhone, &order.CustomerEmail,
-		&order.DeliveryAddress, &order.ClientIP, &order.UserAgent, &order.DeliveryCharge,
-		&order.Subtotal, &order.DiscountAmount, &order.Total, &order.Status,
-	)
-
-	// Load items for pixel content
-	itemRows, _ := h.pool.Query(r.Context(),
-		`SELECT id, order_id, product_id, variant_id, product_name, variant_name,
-		        unit_price, quantity, subtotal, image_url
-		 FROM order_items WHERE order_id = $1`, orderID)
-	if itemRows != nil {
-		defer itemRows.Close()
-		for itemRows.Next() {
-			var item models.OrderItem
-			if err := itemRows.Scan(&item.ID, &item.OrderID, &item.ProductID, &item.VariantID,
-				&item.ProductName, &item.VariantName, &item.UnitPrice,
-				&item.Quantity, &item.Subtotal, &item.ImageURL); err == nil {
-				order.Items = append(order.Items, item)
-			}
-		}
-	}
-
-	// 🔥 Fire Purchase pixel to TikTok + Meta
-	go h.tracker.FirePurchase(r.Context(), &order)
-
 	writeJSON(w, http.StatusOK, models.APIResponse{
 		Success: true,
-		Message: "Order confirmed — Purchase pixel fired",
-		Data:    map[string]interface{}{"order_number": order.OrderNumber, "status": "confirmed"},
+		Message: "Order confirmed",
+		Data:    map[string]interface{}{"status": "confirmed"},
 	})
 }
 

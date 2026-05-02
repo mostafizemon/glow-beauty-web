@@ -12,6 +12,7 @@ import (
 	"glow-beauty-goals/internal/config"
 	"glow-beauty-goals/internal/middleware"
 	"glow-beauty-goals/internal/models"
+	"glow-beauty-goals/internal/tracking"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,11 +22,12 @@ import (
 type OrdersHandler struct {
 	pool     *pgxpool.Pool
 	settings *config.SiteSettings
+	tracker  *tracking.Tracker
 }
 
 // NewOrdersHandler creates a new OrdersHandler.
-func NewOrdersHandler(pool *pgxpool.Pool, settings *config.SiteSettings) *OrdersHandler {
-	return &OrdersHandler{pool: pool, settings: settings}
+func NewOrdersHandler(pool *pgxpool.Pool, settings *config.SiteSettings, tracker *tracking.Tracker) *OrdersHandler {
+	return &OrdersHandler{pool: pool, settings: settings, tracker: tracker}
 }
 
 // PlaceOrder handles POST /api/orders
@@ -55,6 +57,12 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 
 	clientIP := extractClientIP(r)
 	userAgent := strings.TrimSpace(r.UserAgent())
+	purchaseEventID := uuid.New()
+	if req.EventID != "" {
+		if parsedEventID, err := uuid.Parse(req.EventID); err == nil {
+			purchaseEventID = parsedEventID
+		}
+	}
 
 	var orderItems []models.OrderItem
 	var subtotal float64
@@ -209,21 +217,21 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	err = tx.QueryRow(r.Context(),
 		`INSERT INTO orders (customer_id, customer_name, customer_phone, customer_email,
 		                     delivery_address, delivery_area, client_ip, user_agent,
-		                     delivery_charge, subtotal, discount_amount, total, status)
+		                     delivery_charge, subtotal, discount_amount, total, status, event_id)
 		 VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), NULLIF($8, ''),
-		         $9, $10, 0, $11, 'pending')
+		         $9, $10, 0, $11, 'pending', $12)
 		 RETURNING id, order_number, customer_id, customer_name, customer_phone, customer_email,
 		           delivery_address, delivery_area, client_ip, user_agent, delivery_charge,
-		           subtotal, discount_amount, total, status, created_at, updated_at`,
+		           subtotal, discount_amount, total, status, event_id, created_at, updated_at`,
 		customerID, req.CustomerName, req.CustomerPhone, req.CustomerEmail,
 		req.DeliveryAddress, req.DeliveryArea, clientIP, userAgent, deliveryCharge,
-		subtotal, total,
+		subtotal, total, purchaseEventID,
 	).Scan(
 		&order.ID, &order.OrderNumber, &order.CustomerID,
 		&order.CustomerName, &order.CustomerPhone, &order.CustomerEmail,
 		&order.DeliveryAddress, &order.DeliveryArea, &order.ClientIP, &order.UserAgent, &order.DeliveryCharge,
 		&order.Subtotal, &order.DiscountAmount, &order.Total,
-		&order.Status, &order.CreatedAt, &order.UpdatedAt,
+		&order.Status, &order.EventID, &order.CreatedAt, &order.UpdatedAt,
 	)
 	if err != nil {
 		log.Printf("ERROR: insert order: %v", err)
@@ -273,12 +281,14 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// NO pixel fire here — pixel fires when admin confirms
 	order.Items = orderItems
+
+	// Fire Purchase immediately after a successful order placement.
+	go h.tracker.FirePurchase(r.Context(), &order)
 
 	writeJSON(w, http.StatusCreated, models.APIResponse{
 		Success: true,
-		Message: "Order placed successfully",
+		Message: "Order placed successfully — Purchase pixel fired",
 		Data:    order,
 	})
 }

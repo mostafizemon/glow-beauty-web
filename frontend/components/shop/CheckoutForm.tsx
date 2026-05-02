@@ -2,12 +2,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { v4 as uuidv4 } from "uuid";
 import api, { APIResponse } from "@/lib/api";
+import { trackPurchase } from "@/lib/tracking";
 import { useAuth } from "@/lib/hooks/useAuth";
 
 interface PlaceOrderResponse {
   id: string;
   order_number: string;
+  event_id?: string;
+}
+
+interface PurchaseItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
 }
 
 export default function CheckoutForm({
@@ -18,6 +28,7 @@ export default function CheckoutForm({
   buyNowProduct,
   buyNowVariant,
   buyNowQty,
+  purchaseItems,
 }: {
   subtotal: number;
   deliveryCharge: number;
@@ -26,6 +37,7 @@ export default function CheckoutForm({
   buyNowProduct?: string;
   buyNowVariant?: string;
   buyNowQty?: number;
+  purchaseItems: PurchaseItem[];
 }) {
   const router = useRouter();
   const { customer, guestCheckout } = useAuth();
@@ -60,6 +72,8 @@ export default function CheckoutForm({
 
     setLoading(true);
     try {
+      const eventId = uuidv4();
+
       // If not logged in, create guest account first
       if (!customer) {
         await guestCheckout(form.customer_phone.trim(), form.customer_name.trim());
@@ -71,6 +85,7 @@ export default function CheckoutForm({
         customer_phone: form.customer_phone.trim(),
         delivery_address: form.delivery_address.trim(),
         delivery_area: form.delivery_area.trim(),
+        event_id: eventId,
       };
 
       if (checkoutMode === "buy_now") {
@@ -83,6 +98,12 @@ export default function CheckoutForm({
       const res = await api.post<APIResponse<PlaceOrderResponse>>("/api/orders", payload);
 
       if (res.success && res.data) {
+        trackPurchase(
+          purchaseItems,
+          total,
+          { phone: form.customer_phone.trim() },
+          res.data.event_id || eventId
+        );
         router.push(`/orders/${res.data.id}`);
       }
     } catch (err) {

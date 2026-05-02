@@ -290,6 +290,7 @@ type PlaceOrderRequest struct {
 	CustomerEmail   string     `json:"customer_email"` // kept for backwards compatibility but optional
 	DeliveryAddress string     `json:"delivery_address"`
 	DeliveryArea    string     `json:"delivery_area"`
+	EventID         string     `json:"event_id,omitempty"`
 	CheckoutMode    string     `json:"checkout_mode,omitempty"`
 	BuyNowProductID *uuid.UUID `json:"buy_now_product_id,omitempty"`
 	BuyNowVariantID *uuid.UUID `json:"buy_now_variant_id,omitempty"`

@@ -51,7 +51,7 @@ func main() {
 	productsH := handlers.NewProductsHandler(pool)
 	adminProductsH := handlers.NewAdminProductsHandler(pool)
 	cartH := handlers.NewCartHandler(pool)
-	ordersH := handlers.NewOrdersHandler(pool, settings)
+	ordersH := handlers.NewOrdersHandler(pool, settings, tracker)
 	adminOrdersH := handlers.NewAdminOrdersHandler(pool, tracker)
 	adminDashboardH := handlers.NewAdminDashboardHandler(pool)
 	adminTrackingH := handlers.NewAdminTrackingHandler(pool)
