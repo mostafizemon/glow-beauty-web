@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from "uuid";
 import api, { APIResponse } from "@/lib/api";
 import { trackPurchase } from "@/lib/tracking";
 import { useAuth } from "@/lib/hooks/useAuth";
+import { useCart } from "@/lib/hooks/useCart";
 
 interface PlaceOrderResponse {
   id: string;
@@ -41,6 +42,7 @@ export default function CheckoutForm({
 }) {
   const router = useRouter();
   const { customer, guestCheckout } = useAuth();
+  const { refresh: refreshCart } = useCart();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({
@@ -98,6 +100,7 @@ export default function CheckoutForm({
       const res = await api.post<APIResponse<PlaceOrderResponse>>("/api/orders", payload);
 
       if (res.success && res.data) {
+        await refreshCart();
         trackPurchase(
           purchaseItems,
           total,

@@ -59,11 +59,11 @@ export default function HomePage() {
               Curated collection of authentic beauty products for skincare,
               makeup, and haircare. Because you deserve to feel beautiful.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up">
-              <Link href="/products" className="btn-primary px-8 py-4 text-base">
+            <div className="flex w-full flex-col sm:flex-row items-center justify-center gap-4 animate-fade-in-up">
+              <Link href="/products" className="btn-primary w-full max-w-xs sm:w-auto sm:max-w-none sm:min-w-[170px] px-8 py-4 text-base">
                 Shop Now
               </Link>
-              <Link href="/products?featured=true" className="btn-outline px-8 py-4 text-base">
+              <Link href="/products?featured=true" className="btn-outline w-full max-w-xs sm:w-auto sm:max-w-none sm:min-w-[170px] px-8 py-4 text-base">
                 Featured Products
               </Link>
             </div>
