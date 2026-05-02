@@ -167,6 +167,8 @@ CREATE TABLE IF NOT EXISTS orders (
     customer_email  VARCHAR(255),
     delivery_address TEXT NOT NULL DEFAULT '',
     delivery_area   VARCHAR(100),
+    client_ip       TEXT,
+    user_agent      TEXT,
     delivery_charge NUMERIC(10,2) NOT NULL DEFAULT 0,
     subtotal        NUMERIC(10,2) NOT NULL DEFAULT 0,
     discount_amount NUMERIC(10,2) NOT NULL DEFAULT 0,

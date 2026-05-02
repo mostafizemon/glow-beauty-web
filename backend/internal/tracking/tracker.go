@@ -87,13 +87,13 @@ func (t *Tracker) FirePurchase(ctx context.Context, order *models.Order) {
 	req := models.TrackEventRequest{
 		EventName: "Purchase",
 		EventID:   eventID.String(),
+		ClientIP:  derefString(order.ClientIP),
+		UserAgent: derefString(order.UserAgent),
 		Value:     value,
 		Currency:  "BDT",
 		Contents:  contents,
 		UserData: map[string]interface{}{
-			"email": derefString(order.CustomerEmail),
 			"phone": order.CustomerPhone,
-			"name":  order.CustomerName,
 		},
 	}
 
@@ -120,10 +120,11 @@ func (t *Tracker) FireCancel(ctx context.Context, order *models.Order) {
 	req := models.TrackEventRequest{
 		EventName: "CancelOrder",
 		EventID:   eventID.String(),
+		ClientIP:  derefString(order.ClientIP),
+		UserAgent: derefString(order.UserAgent),
 		Value:     order.Total,
 		Currency:  "BDT",
 		UserData: map[string]interface{}{
-			"email": derefString(order.CustomerEmail),
 			"phone": order.CustomerPhone,
 		},
 	}

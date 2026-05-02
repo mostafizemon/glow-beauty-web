@@ -248,6 +248,8 @@ type Order struct {
 	CustomerEmail   *string    `json:"customer_email,omitempty"`
 	DeliveryAddress string     `json:"delivery_address"`
 	DeliveryArea    *string    `json:"delivery_area,omitempty"`
+	ClientIP        *string    `json:"client_ip,omitempty"`
+	UserAgent       *string    `json:"user_agent,omitempty"`
 	DeliveryCharge  float64    `json:"delivery_charge"`
 	Subtotal        float64    `json:"subtotal"`
 	DiscountAmount  float64    `json:"discount_amount"`

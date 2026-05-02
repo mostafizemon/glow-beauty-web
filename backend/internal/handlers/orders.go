@@ -3,8 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"log"
+	"net"
 	"net/http"
+	"net/netip"
 	"strconv"
+	"strings"
 
 	"glow-beauty-goals/internal/config"
 	"glow-beauty-goals/internal/middleware"
@@ -49,6 +52,9 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+
+	clientIP := extractClientIP(r)
+	userAgent := strings.TrimSpace(r.UserAgent())
 
 	var orderItems []models.OrderItem
 	var subtotal float64
@@ -202,19 +208,20 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	var order models.Order
 	err = tx.QueryRow(r.Context(),
 		`INSERT INTO orders (customer_id, customer_name, customer_phone, customer_email,
-		                     delivery_address, delivery_area, delivery_charge,
-		                     subtotal, discount_amount, total, status)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, 'pending')
+		                     delivery_address, delivery_area, client_ip, user_agent,
+		                     delivery_charge, subtotal, discount_amount, total, status)
+		 VALUES ($1, $2, $3, $4, $5, $6, NULLIF($7, ''), NULLIF($8, ''),
+		         $9, $10, 0, $11, 'pending')
 		 RETURNING id, order_number, customer_id, customer_name, customer_phone, customer_email,
-		           delivery_address, delivery_area, delivery_charge,
+		           delivery_address, delivery_area, client_ip, user_agent, delivery_charge,
 		           subtotal, discount_amount, total, status, created_at, updated_at`,
 		customerID, req.CustomerName, req.CustomerPhone, req.CustomerEmail,
-		req.DeliveryAddress, req.DeliveryArea, deliveryCharge,
+		req.DeliveryAddress, req.DeliveryArea, clientIP, userAgent, deliveryCharge,
 		subtotal, total,
 	).Scan(
 		&order.ID, &order.OrderNumber, &order.CustomerID,
 		&order.CustomerName, &order.CustomerPhone, &order.CustomerEmail,
-		&order.DeliveryAddress, &order.DeliveryArea, &order.DeliveryCharge,
+		&order.DeliveryAddress, &order.DeliveryArea, &order.ClientIP, &order.UserAgent, &order.DeliveryCharge,
 		&order.Subtotal, &order.DiscountAmount, &order.Total,
 		&order.Status, &order.CreatedAt, &order.UpdatedAt,
 	)
@@ -274,6 +281,37 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 		Message: "Order placed successfully",
 		Data:    order,
 	})
+}
+
+func extractClientIP(r *http.Request) string {
+	if forwarded := strings.TrimSpace(r.Header.Get("X-Forwarded-For")); forwarded != "" {
+		parts := strings.Split(forwarded, ",")
+		if len(parts) > 0 {
+			candidate := strings.TrimSpace(parts[0])
+			if _, err := netip.ParseAddr(candidate); err == nil {
+				return candidate
+			}
+		}
+	}
+
+	if realIP := strings.TrimSpace(r.Header.Get("X-Real-IP")); realIP != "" {
+		if _, err := netip.ParseAddr(realIP); err == nil {
+			return realIP
+		}
+	}
+
+	host := r.RemoteAddr
+	if strings.Contains(host, ":") {
+		if parsedHost, _, err := net.SplitHostPort(host); err == nil {
+			host = parsedHost
+		}
+	}
+	host = strings.TrimSpace(host)
+	if _, err := netip.ParseAddr(host); err == nil {
+		return host
+	}
+
+	return ""
 }
 
 // MyOrders handles GET /api/orders/my

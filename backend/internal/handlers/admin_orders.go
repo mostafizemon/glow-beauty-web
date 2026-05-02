@@ -223,11 +223,12 @@ func (h *AdminOrdersHandler) ConfirmOrder(w http.ResponseWriter, r *http.Request
 	var order models.Order
 	_ = h.pool.QueryRow(r.Context(),
 		`SELECT id, order_number, customer_id, customer_name, customer_phone, customer_email,
-		        delivery_address, delivery_charge, subtotal, discount_amount, total, status
+		        delivery_address, client_ip, user_agent, delivery_charge,
+		        subtotal, discount_amount, total, status
 		 FROM orders WHERE id = $1`, orderID,
 	).Scan(&order.ID, &order.OrderNumber, &order.CustomerID,
 		&order.CustomerName, &order.CustomerPhone, &order.CustomerEmail,
-		&order.DeliveryAddress, &order.DeliveryCharge,
+		&order.DeliveryAddress, &order.ClientIP, &order.UserAgent, &order.DeliveryCharge,
 		&order.Subtotal, &order.DiscountAmount, &order.Total, &order.Status,
 	)
 
@@ -280,11 +281,11 @@ func (h *AdminOrdersHandler) CancelOrder(w http.ResponseWriter, r *http.Request)
 	var order models.Order
 	err = h.pool.QueryRow(r.Context(),
 		`SELECT id, order_number, customer_id, customer_name, customer_phone, customer_email,
-		        total, status, pixel_status
+		        client_ip, user_agent, total, status, pixel_status
 		 FROM orders WHERE id = $1`, orderID,
 	).Scan(&order.ID, &order.OrderNumber, &order.CustomerID,
 		&order.CustomerName, &order.CustomerPhone, &order.CustomerEmail,
-		&order.Total, &order.Status, &order.PixelStatus,
+		&order.ClientIP, &order.UserAgent, &order.Total, &order.Status, &order.PixelStatus,
 	)
 	if err != nil {
 		writeJSON(w, http.StatusNotFound, models.APIResponse{
