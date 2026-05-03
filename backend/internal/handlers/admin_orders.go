@@ -174,7 +174,7 @@ func (h *AdminOrdersHandler) GetOrder(w http.ResponseWriter, r *http.Request) {
 }
 
 // ConfirmOrder handles PATCH /api/admin/orders/:id/confirm
-// This is where the Purchase pixel fires!
+// Purchase tracking fires when the order is placed.
 func (h *AdminOrdersHandler) ConfirmOrder(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
 	orderID, err := uuid.Parse(idStr)

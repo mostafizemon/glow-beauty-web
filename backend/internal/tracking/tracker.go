@@ -12,6 +12,7 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -443,7 +444,11 @@ func (t *Tracker) fireMeta(ctx context.Context, eventName string, eventID *uuid.
 	}
 
 	body, _ := json.Marshal(payload)
-	apiURL := fmt.Sprintf("https://graph.facebook.com/v18.0/%s/events?access_token=%s", pixelID, accessToken)
+	apiVersion := strings.TrimSpace(os.Getenv("META_GRAPH_API_VERSION"))
+	if apiVersion == "" {
+		apiVersion = "v24.0"
+	}
+	apiURL := fmt.Sprintf("https://graph.facebook.com/%s/%s/events?access_token=%s", apiVersion, pixelID, accessToken)
 
 	httpReq, err := http.NewRequestWithContext(bgCtx, "POST", apiURL, bytes.NewReader(body))
 	if err != nil {

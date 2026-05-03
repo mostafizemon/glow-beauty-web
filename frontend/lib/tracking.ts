@@ -14,6 +14,7 @@ declare global {
     ttq: any;
     fbq: any;
     _ttq_loaded?: boolean;
+    _fbq_loaded?: boolean;
     __tt_test_code?: string;
     __fb_test_code?: string;
   }
@@ -136,6 +137,41 @@ function fireTikTokPageViewWhenReady(eventId: string, ttTestCode: string) {
   });
 }
 
+function fireMetaWhenReady(
+  eventName: string,
+  params: Record<string, unknown>,
+  eventId: string
+) {
+  if (typeof window === "undefined") return Promise.resolve(false);
+
+  return new Promise<boolean>((resolve) => {
+    let settled = false;
+    const fire = () => {
+      if (settled) return;
+      settled = true;
+      if (window.fbq && window._fbq_loaded) {
+        window.fbq("track", eventName, params, { eventID: eventId });
+        resolve(true);
+        return;
+      }
+      resolve(false);
+    };
+
+    if (window._fbq_loaded) {
+      fire();
+      return;
+    }
+
+    const onReady = () => fire();
+    window.addEventListener("gbg:meta-ready", onReady, { once: true });
+
+    window.setTimeout(() => {
+      window.removeEventListener("gbg:meta-ready", onReady);
+      fire();
+    }, 5000);
+  });
+}
+
 // Send to backend tracking bridge
 async function sendServerEvent(
   eventName: string,
@@ -200,8 +236,10 @@ export function trackPageView() {
 
   if (typeof window !== "undefined") {
     void fireTikTokPageViewWhenReady(eventId, ttTestCode || "");
-    if (window.fbq) window.fbq("track", "PageView", {}, { eventID: eventId });
+    void fireMetaWhenReady("PageView", {}, eventId);
   }
+
+  sendServerEvent("PageView", eventId, {});
 }
 
 export function trackViewContent(
@@ -234,13 +272,11 @@ export function trackViewContent(
           ...(ttTestCode ? { test_event_code: ttTestCode } : {})
         }
       );
-    if (window.fbq)
-      window.fbq(
-        "track",
-        "ViewContent",
-        { content_ids: [product.id], content_name: product.name, value: Number(product.price) || 0, currency: "BDT" },
-        { eventID: eventId }
-      );
+    void fireMetaWhenReady(
+      "ViewContent",
+      { content_ids: [product.id], content_name: product.name, value: Number(product.price) || 0, currency: "BDT" },
+      eventId
+    );
   }
 
   sendServerEvent("ViewContent", eventId, { contents, value: Number(product.price) || 0, currency: "BDT", userData });
@@ -275,8 +311,7 @@ export function trackAddToCart(
           ...(ttTestCode ? { test_event_code: ttTestCode } : {})
         }
       );
-    if (window.fbq)
-      window.fbq("track", "AddToCart", { content_ids: [product.id], value, currency: "BDT" }, { eventID: eventId });
+    void fireMetaWhenReady("AddToCart", { content_ids: [product.id], value, currency: "BDT" }, eventId);
   }
 
   sendServerEvent("AddToCart", eventId, { contents, value, currency: "BDT", userData });
@@ -308,13 +343,11 @@ export function trackInitiateCheckout(
           ...(ttTestCode ? { test_event_code: ttTestCode } : {})
         }
       );
-    if (window.fbq)
-      window.fbq(
-        "track",
-        "InitiateCheckout",
-        { content_ids: items.map((i) => i.id), value: total, currency: "BDT", num_items: items.length },
-        { eventID: eventId }
-      );
+    void fireMetaWhenReady(
+      "InitiateCheckout",
+      { content_ids: items.map((i) => i.id), value: total, currency: "BDT", num_items: items.length },
+      eventId
+    );
   }
 
   sendServerEvent("InitiateCheckout", eventId, { contents, value: total, currency: "BDT", userData });
@@ -330,7 +363,7 @@ export function trackSearch(query: string, userData?: UserData) {
       event_id: eventId,
       ...(ttTestCode ? { test_event_code: ttTestCode } : {})
     });
-    if (window.fbq) window.fbq("track", "Search", { search_string: query }, { eventID: eventId });
+    void fireMetaWhenReady("Search", { search_string: query }, eventId);
   }
 
   sendServerEvent("Search", eventId, { userData });
@@ -365,13 +398,11 @@ export function trackPurchase(
           ...(ttTestCode ? { test_event_code: ttTestCode } : {})
         }
       );
-    if (window.fbq)
-      window.fbq(
-        "track",
-        "Purchase",
-        { content_ids: items.map((i) => i.id), value: total, currency: "BDT" },
-        { eventID: eventId }
-      );
+    void fireMetaWhenReady(
+      "Purchase",
+      { content_ids: items.map((i) => i.id), value: total, currency: "BDT" },
+      eventId
+    );
   }
 
   // Note: We don't call sendServerEvent here because Purchase is traditionally 

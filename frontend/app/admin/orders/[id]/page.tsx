@@ -50,7 +50,7 @@ export default function AdminOrderDetailPage() {
     setActionLoading("confirm");
     try {
       await api.patch(`/api/admin/orders/${id}/confirm`);
-      showToast("✅ Order confirmed — Purchase pixel fired to TikTok & Meta");
+      showToast("✅ Order confirmed");
       const res = await api.get<APIResponse<Order>>(`/api/admin/orders/${id}`);
       if (res.success && res.data) setOrder(res.data);
     } catch (err) {
@@ -252,8 +252,8 @@ export default function AdminOrderDetailPage() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fade-in">
             <h3 className="text-lg font-bold text-charcoal mb-3">Confirm Order?</h3>
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-amber-800 font-medium">⚠️ This will fire the Purchase pixel to TikTok and Meta</p>
-              <p className="text-xs text-amber-600 mt-1">The pixel event cannot be undone. Cancel event can be sent later if needed.</p>
+              <p className="text-sm text-amber-800 font-medium">⚠️ Purchase pixel fires when the customer places the order.</p>
+              <p className="text-xs text-amber-600 mt-1">Confirming updates the order status only. Cancel event can be sent later if needed.</p>
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowConfirmModal(false)} className="btn-ghost flex-1">Cancel</button>
