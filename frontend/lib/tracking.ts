@@ -69,16 +69,34 @@ function getCookieValue(name: string): string {
   return "";
 }
 
+function setCookie(name: string, value: string, maxAgeSeconds: number) {
+  if (typeof document === "undefined" || !value) return;
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; samesite=lax`;
+}
+
+function ensureMetaBrowserData() {
+  if (typeof window === "undefined") return;
+
+  const maxAge = 60 * 60 * 24 * 90;
+  const now = Date.now();
+  if (!getCookieValue("_fbp")) {
+    const randomPart = Math.floor(Math.random() * 10_000_000_000);
+    setCookie("_fbp", `fb.1.${now}.${randomPart}`, maxAge);
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const fbclid = params.get("fbclid");
+  if (fbclid) {
+    setCookie("_fbc", `fb.1.${now}.${fbclid}`, maxAge);
+  }
+}
+
 export function getMetaBrowserData() {
+  ensureMetaBrowserData();
   return {
     fbp: getCookieValue("_fbp"),
     fbc: getCookieValue("_fbc"),
   };
-}
-
-function setCookie(name: string, value: string, maxAgeSeconds: number) {
-  if (typeof document === "undefined" || !value) return;
-  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; samesite=lax`;
 }
 
 function captureTtclidFromUrl() {
@@ -190,6 +208,7 @@ async function sendServerEvent(
 ) {
   try {
     captureTtclidFromUrl();
+    ensureMetaBrowserData();
     const fbp = getCookieValue("_fbp");
     const fbc = getCookieValue("_fbc");
     const ttclid = getCookieValue("ttclid");
