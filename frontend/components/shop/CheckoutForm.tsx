@@ -91,6 +91,7 @@ export default function CheckoutForm({
         event_id: eventId,
         fbp: metaBrowserData.fbp,
         fbc: metaBrowserData.fbc,
+        external_id: metaBrowserData.external_id,
       };
 
       if (checkoutMode === "buy_now") {

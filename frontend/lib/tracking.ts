@@ -91,11 +91,22 @@ function ensureMetaBrowserData() {
   }
 }
 
+export function getMetaExternalId() {
+  const maxAge = 60 * 60 * 24 * 365;
+  let externalId = getCookieValue("gbg_external_id");
+  if (!externalId && typeof window !== "undefined") {
+    externalId = uuidv4();
+    setCookie("gbg_external_id", externalId, maxAge);
+  }
+  return externalId;
+}
+
 export function getMetaBrowserData() {
   ensureMetaBrowserData();
   return {
     fbp: getCookieValue("_fbp"),
     fbc: getCookieValue("_fbc"),
+    external_id: getMetaExternalId(),
   };
 }
 
@@ -124,6 +135,25 @@ function buildTikTokProductPayload(contents: TrackContent[], value: number, curr
     content_ids: contentIds,
     content_type: "product",
     ...(quantity > 0 ? { quantity } : {}),
+    ...(normalizedValue > 0 ? { value: normalizedValue, currency } : {}),
+  };
+}
+
+function buildMetaProductPayload(contents: TrackContent[], value: number, currency: string) {
+  const contentIds = contents.map((item) => item.content_id).filter(Boolean);
+  const metaContents = contents
+    .filter((item) => item.content_id)
+    .map((item) => ({
+      id: item.content_id,
+      quantity: Math.max(1, Number(item.quantity) || 1),
+      item_price: validValue(Number(item.price) || 0),
+    }));
+  const normalizedValue = validValue(value);
+
+  return {
+    content_ids: contentIds,
+    content_type: "product",
+    contents: metaContents,
     ...(normalizedValue > 0 ? { value: normalizedValue, currency } : {}),
   };
 }
@@ -211,11 +241,13 @@ async function sendServerEvent(
     ensureMetaBrowserData();
     const fbp = getCookieValue("_fbp");
     const fbc = getCookieValue("_fbc");
+    const externalId = getMetaExternalId();
     const ttclid = getCookieValue("ttclid");
     const mergedUserData: UserData = {
       ...(data.userData || {}),
       ...(fbp ? { fbp } : {}),
       ...(fbc ? { fbc } : {}),
+      ...(externalId ? { external_id: externalId } : {}),
       ...(ttclid ? { ttclid } : {}),
     };
 
@@ -295,7 +327,10 @@ export function trackViewContent(
       );
     void fireMetaWhenReady(
       "ViewContent",
-      { content_ids: [product.id], content_name: product.name, value: Number(product.price) || 0, currency: "BDT" },
+      {
+        ...buildMetaProductPayload(contents, Number(product.price) || 0, "BDT"),
+        content_name: product.name,
+      },
       eventId
     );
   }
@@ -332,7 +367,7 @@ export function trackAddToCart(
           ...(ttTestCode ? { test_event_code: ttTestCode } : {})
         }
       );
-    void fireMetaWhenReady("AddToCart", { content_ids: [product.id], value, currency: "BDT" }, eventId);
+    void fireMetaWhenReady("AddToCart", buildMetaProductPayload(contents, value, "BDT"), eventId);
   }
 
   sendServerEvent("AddToCart", eventId, { contents, value, currency: "BDT", userData });
@@ -366,7 +401,10 @@ export function trackInitiateCheckout(
       );
     void fireMetaWhenReady(
       "InitiateCheckout",
-      { content_ids: items.map((i) => i.id), value: total, currency: "BDT", num_items: items.length },
+      {
+        ...buildMetaProductPayload(contents, total, "BDT"),
+        num_items: contents.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0),
+      },
       eventId
     );
   }
@@ -421,7 +459,7 @@ export function trackPurchase(
       );
     void fireMetaWhenReady(
       "Purchase",
-      { content_ids: items.map((i) => i.id), value: total, currency: "BDT" },
+      buildMetaProductPayload(contents, total, "BDT"),
       eventId
     );
   }

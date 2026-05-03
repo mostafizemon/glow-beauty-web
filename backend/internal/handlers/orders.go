@@ -76,6 +76,12 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 			fbc = strings.TrimSpace(cookie.Value)
 		}
 	}
+	externalID := strings.TrimSpace(req.ExternalID)
+	if externalID == "" {
+		if cookie, err := r.Cookie("gbg_external_id"); err == nil {
+			externalID = strings.TrimSpace(cookie.Value)
+		}
+	}
 
 	var orderItems []models.OrderItem
 	var subtotal float64
@@ -303,6 +309,9 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	if fbc != "" {
 		purchaseUserData["fbc"] = fbc
+	}
+	if externalID != "" {
+		purchaseUserData["external_id"] = externalID
 	}
 	go h.tracker.FirePurchaseWithUserData(context.Background(), &order, purchaseUserData)
 

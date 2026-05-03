@@ -7,9 +7,10 @@
 import { useEffect, useState } from "react";
 import Script from "next/script";
 import api, { APIResponse } from "@/lib/api";
+import { getMetaExternalId } from "@/lib/tracking";
 
 export default function PixelInjector() {
-  const [pixels, setPixels] = useState<{ meta: string; tiktok: string; metaTest: string; tiktokTest: string } | null>(null);
+  const [pixels, setPixels] = useState<{ meta: string; tiktok: string; metaTest: string; tiktokTest: string; externalId: string } | null>(null);
 
   useEffect(() => {
     // Stubs for early tracking events before the script is fully mounted
@@ -52,6 +53,7 @@ export default function PixelInjector() {
           tiktok: tiktokId,
           metaTest,
           tiktokTest,
+          externalId: getMetaExternalId(),
         });
 
         // Store test codes globally for the tracking library to access
@@ -67,6 +69,7 @@ export default function PixelInjector() {
           tiktok: "",
           metaTest: "",
           tiktokTest: "",
+          externalId: "",
         });
       });
   }, []);
@@ -108,7 +111,7 @@ export default function PixelInjector() {
               t.src=v;s=b.getElementsByTagName(e)[0];
               s.parentNode.insertBefore(t,s)}(window, document,'script',
               'https://connect.facebook.net/en_US/fbevents.js');
-              fbq('init', '${pixels.meta}');
+              fbq('init', '${pixels.meta}', ${pixels.externalId ? `{ external_id: '${pixels.externalId}' }` : "{}"});
               window._fbq_loaded = true;
               window.dispatchEvent(new Event("gbg:meta-ready"));
               console.log("[Pixels] Meta Browser Pixel Initialized for ID: ${pixels.meta}");

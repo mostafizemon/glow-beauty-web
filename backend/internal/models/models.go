@@ -293,6 +293,7 @@ type PlaceOrderRequest struct {
 	EventID         string     `json:"event_id,omitempty"`
 	FBP             string     `json:"fbp,omitempty"`
 	FBC             string     `json:"fbc,omitempty"`
+	ExternalID      string     `json:"external_id,omitempty"`
 	CheckoutMode    string     `json:"checkout_mode,omitempty"`
 	BuyNowProductID *uuid.UUID `json:"buy_now_product_id,omitempty"`
 	BuyNowVariantID *uuid.UUID `json:"buy_now_variant_id,omitempty"`
