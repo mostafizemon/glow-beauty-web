@@ -25,11 +25,11 @@ type Config struct {
 // SiteSettings provides a cached in-memory key-value store
 // loaded from the site_settings table with a 5-minute TTL.
 type SiteSettings struct {
-	mu        sync.RWMutex
-	cache     map[string]string
-	loadedAt  time.Time
-	ttl       time.Duration
-	pool      *pgxpool.Pool
+	mu       sync.RWMutex
+	cache    map[string]string
+	loadedAt time.Time
+	ttl      time.Duration
+	pool     *pgxpool.Pool
 }
 
 var (
@@ -138,6 +138,7 @@ func (s *SiteSettings) GetPublic() map[string]string {
 		"contact_phone", "contact_email",
 		"meta_pixel_id", "tiktok_pixel_id",
 		"meta_test_code", "tiktok_test_code",
+		"meta_domain_verification",
 	}
 	result := make(map[string]string, len(publicKeys))
 	for _, k := range publicKeys {

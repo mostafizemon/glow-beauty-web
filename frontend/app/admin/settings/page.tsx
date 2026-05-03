@@ -19,6 +19,11 @@ export default function AdminSettingsPage() {
     setSettings(prev => ({ ...prev, [key]: value }));
   };
 
+  const updateMetaDomainVerification = (value: string) => {
+    const contentMatch = value.match(/content=["']([^"']+)["']/i);
+    updateField("meta_domain_verification", contentMatch ? contentMatch[1].trim() : value.trim());
+  };
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -148,6 +153,16 @@ export default function AdminSettingsPage() {
               <label className="input-label">Test Event Code</label>
               <input value={settings.meta_test_code || ""} onChange={e => updateField("meta_test_code", e.target.value)} className="input font-mono" placeholder="TEST12345" />
               <p className="text-xs text-charcoal-lighter mt-1">Leave empty in production</p>
+            </div>
+            <div className="md:col-span-2">
+              <label className="input-label">Domain Verification Meta Tag</label>
+              <input
+                value={settings.meta_domain_verification || ""}
+                onChange={e => updateMetaDomainVerification(e.target.value)}
+                className="input font-mono text-xs"
+                placeholder={'<meta name="facebook-domain-verification" content="..." />'}
+              />
+              <p className="text-xs text-charcoal-lighter mt-1">Paste the full Meta tag or only the content value.</p>
             </div>
           </div>
         </div>
