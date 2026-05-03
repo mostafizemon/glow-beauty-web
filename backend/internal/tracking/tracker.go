@@ -219,6 +219,42 @@ func normalizeCurrency(currency string) string {
 	return currency
 }
 
+func buildMetaContents(contents []models.TrackContent) []map[string]interface{} {
+	metaContents := make([]map[string]interface{}, 0, len(contents))
+	for _, item := range contents {
+		contentID := strings.TrimSpace(item.ContentID)
+		if contentID == "" {
+			continue
+		}
+
+		quantity := item.Quantity
+		if quantity < 1 {
+			quantity = 1
+		}
+
+		metaItem := map[string]interface{}{
+			"id":       contentID,
+			"quantity": quantity,
+		}
+		if price, ok := normalizeMonetaryValue(item.Price); ok {
+			metaItem["item_price"] = price
+		}
+		metaContents = append(metaContents, metaItem)
+	}
+	return metaContents
+}
+
+func contentIDs(contents []models.TrackContent) []string {
+	ids := make([]string, 0, len(contents))
+	for _, content := range contents {
+		contentID := strings.TrimSpace(content.ContentID)
+		if contentID != "" {
+			ids = append(ids, contentID)
+		}
+	}
+	return ids
+}
+
 // fireTikTok sends an event to TikTok Events API.
 func (t *Tracker) fireTikTok(ctx context.Context, eventName string, eventID *uuid.UUID, orderID *uuid.UUID, req models.TrackEventRequest) {
 	// Create a background-safe context that isn't canceled when the request finishes
@@ -297,18 +333,15 @@ func (t *Tracker) fireTikTok(ctx context.Context, eventName string, eventID *uui
 		properties["contents"] = req.Contents
 		properties["content_type"] = "product"
 
-		contentIDs := make([]string, 0, len(req.Contents))
+		ids := contentIDs(req.Contents)
 		quantity := 0
 		for _, content := range req.Contents {
-			if strings.TrimSpace(content.ContentID) != "" {
-				contentIDs = append(contentIDs, strings.TrimSpace(content.ContentID))
-			}
 			if content.Quantity > 0 {
 				quantity += content.Quantity
 			}
 		}
-		if len(contentIDs) > 0 {
-			properties["content_ids"] = contentIDs
+		if len(ids) > 0 {
+			properties["content_ids"] = ids
 		}
 		if quantity > 0 {
 			properties["quantity"] = quantity
@@ -434,8 +467,10 @@ func (t *Tracker) fireMeta(ctx context.Context, eventName string, eventID *uuid.
 
 	// Build Meta CAPI payload
 	customData := map[string]interface{}{}
-	if len(req.Contents) > 0 {
-		customData["contents"] = req.Contents
+	if metaContents := buildMetaContents(req.Contents); len(metaContents) > 0 {
+		customData["contents"] = metaContents
+		customData["content_ids"] = contentIDs(req.Contents)
+		customData["content_type"] = "product"
 	}
 	if eventUsesMonetaryValue(eventName) && req.Value > 0 {
 		customData["value"] = req.Value
