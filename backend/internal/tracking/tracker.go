@@ -51,7 +51,9 @@ func (t *Tracker) TrackEvent(ctx context.Context, req models.TrackEventRequest) 
 		}
 	}
 
-	t.fireTikTok(ctx, req.EventName, &eventID, nil, req)
+	if !strings.EqualFold(strings.TrimSpace(req.EventName), "PageView") {
+		t.fireTikTok(ctx, req.EventName, &eventID, nil, req)
+	}
 	t.fireMeta(ctx, req.EventName, &eventID, nil, req)
 }
 

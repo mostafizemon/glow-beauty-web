@@ -110,7 +110,7 @@ function buildTikTokProductPayload(contents: TrackContent[], value: number, curr
   };
 }
 
-function fireTikTokPageViewWhenReady(eventId: string, ttTestCode: string) {
+function fireTikTokPageViewWhenReady() {
   if (typeof window === "undefined") return Promise.resolve(false);
 
   return new Promise<boolean>((resolve) => {
@@ -119,10 +119,7 @@ function fireTikTokPageViewWhenReady(eventId: string, ttTestCode: string) {
       if (settled) return;
       settled = true;
       if (window.ttq && typeof window.ttq.page === "function") {
-        window.ttq.page({
-          event_id: eventId,
-          ...(ttTestCode ? { test_event_code: ttTestCode } : {}),
-        });
+        window.ttq.page();
         resolve(true);
         return;
       }
@@ -239,10 +236,8 @@ export function trackPageView() {
   }
 
   const eventId = uuidv4();
-  const ttTestCode = typeof window !== "undefined" ? window.__tt_test_code : "";
-
   if (typeof window !== "undefined") {
-    void fireTikTokPageViewWhenReady(eventId, ttTestCode || "");
+    void fireTikTokPageViewWhenReady();
     void fireMetaWhenReady("PageView", {}, eventId);
   }
 
