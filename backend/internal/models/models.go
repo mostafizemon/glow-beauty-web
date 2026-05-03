@@ -15,8 +15,8 @@ type AdminUser struct {
 	Name         string     `json:"name"`
 	Email        string     `json:"email"`
 	Phone        string     `json:"phone"`
-	PasswordHash string     `json:"-"` // never expose in JSON
-	Role         string     `json:"role"`      // "superadmin" | "admin"
+	PasswordHash string     `json:"-"`    // never expose in JSON
+	Role         string     `json:"role"` // "superadmin" | "admin"
 	IsActive     bool       `json:"is_active"`
 	CreatedAt    time.Time  `json:"created_at"`
 	LastLogin    *time.Time `json:"last_login,omitempty"`
@@ -188,8 +188,8 @@ type AddImageRequest struct {
 type ProductVariant struct {
 	ID         uuid.UUID `json:"id"`
 	ProductID  uuid.UUID `json:"product_id"`
-	Name       string    `json:"name"`       // e.g. "Shade"
-	Value      string    `json:"value"`      // e.g. "Nude Pink"
+	Name       string    `json:"name"`  // e.g. "Shade"
+	Value      string    `json:"value"` // e.g. "Nude Pink"
 	PriceDelta float64   `json:"price_delta"`
 	Stock      int       `json:"stock"`
 	SortOrder  int       `json:"sort_order"`
@@ -230,9 +230,9 @@ type UpdateCartItemRequest struct {
 }
 
 type CartResponse struct {
-	Items      []CartItem `json:"items"`
-	ItemCount  int        `json:"item_count"`
-	Subtotal   float64    `json:"subtotal"`
+	Items     []CartItem `json:"items"`
+	ItemCount int        `json:"item_count"`
+	Subtotal  float64    `json:"subtotal"`
 }
 
 // ============================================================
@@ -291,6 +291,8 @@ type PlaceOrderRequest struct {
 	DeliveryAddress string     `json:"delivery_address"`
 	DeliveryArea    string     `json:"delivery_area"`
 	EventID         string     `json:"event_id,omitempty"`
+	FBP             string     `json:"fbp,omitempty"`
+	FBC             string     `json:"fbc,omitempty"`
 	CheckoutMode    string     `json:"checkout_mode,omitempty"`
 	BuyNowProductID *uuid.UUID `json:"buy_now_product_id,omitempty"`
 	BuyNowVariantID *uuid.UUID `json:"buy_now_variant_id,omitempty"`
@@ -319,8 +321,8 @@ type TrackingLog struct {
 	EventName string     `json:"event_name"`
 	Platform  string     `json:"platform"` // "tiktok" | "meta"
 	OrderID   *uuid.UUID `json:"order_id,omitempty"`
-	Payload   string     `json:"payload"`  // JSONB stored as string
-	Status    string     `json:"status"`   // "success" | "error"
+	Payload   string     `json:"payload"` // JSONB stored as string
+	Status    string     `json:"status"`  // "success" | "error"
 	ErrorMsg  string     `json:"error_msg,omitempty"`
 	FiredAt   time.Time  `json:"fired_at"`
 }

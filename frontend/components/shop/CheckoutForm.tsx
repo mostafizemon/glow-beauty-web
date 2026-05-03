@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { v4 as uuidv4 } from "uuid";
 import api, { APIResponse } from "@/lib/api";
-import { trackPurchase } from "@/lib/tracking";
+import { getMetaBrowserData, trackPurchase } from "@/lib/tracking";
 import { useAuth } from "@/lib/hooks/useAuth";
 import { useCart } from "@/lib/hooks/useCart";
 
@@ -75,6 +75,7 @@ export default function CheckoutForm({
     setLoading(true);
     try {
       const eventId = uuidv4();
+      const metaBrowserData = getMetaBrowserData();
 
       // If not logged in, create guest account first
       if (!customer) {
@@ -88,6 +89,8 @@ export default function CheckoutForm({
         delivery_address: form.delivery_address.trim(),
         delivery_area: form.delivery_area.trim(),
         event_id: eventId,
+        fbp: metaBrowserData.fbp,
+        fbc: metaBrowserData.fbc,
       };
 
       if (checkoutMode === "buy_now") {

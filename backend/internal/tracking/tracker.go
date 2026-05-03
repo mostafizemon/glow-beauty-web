@@ -15,6 +15,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
 
 	"glow-beauty-goals/internal/config"
@@ -56,6 +57,11 @@ func (t *Tracker) TrackEvent(ctx context.Context, req models.TrackEventRequest) 
 
 // FirePurchase triggers a server-side purchase event for both platforms.
 func (t *Tracker) FirePurchase(ctx context.Context, order *models.Order) {
+	t.FirePurchaseWithUserData(ctx, order, nil)
+}
+
+// FirePurchaseWithUserData triggers a server-side purchase event with extra browser identifiers.
+func (t *Tracker) FirePurchaseWithUserData(ctx context.Context, order *models.Order, extraUserData map[string]interface{}) {
 	eventID := uuid.New()
 	if order.EventID != nil {
 		eventID = *order.EventID
@@ -85,6 +91,15 @@ func (t *Tracker) FirePurchase(ctx context.Context, order *models.Order) {
 		}
 	}
 
+	userData := map[string]interface{}{
+		"phone": order.CustomerPhone,
+	}
+	for key, value := range extraUserData {
+		if str, ok := value.(string); ok && strings.TrimSpace(str) != "" {
+			userData[key] = strings.TrimSpace(str)
+		}
+	}
+
 	req := models.TrackEventRequest{
 		EventName: "Purchase",
 		EventID:   eventID.String(),
@@ -93,13 +108,20 @@ func (t *Tracker) FirePurchase(ctx context.Context, order *models.Order) {
 		Value:     value,
 		Currency:  "BDT",
 		Contents:  contents,
-		UserData: map[string]interface{}{
-			"phone": order.CustomerPhone,
-		},
+		UserData:  userData,
 	}
 
-	t.fireTikTok(ctx, "Purchase", &eventID, &order.ID, req)
-	t.fireMeta(ctx, "Purchase", &eventID, &order.ID, req)
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		t.fireTikTok(ctx, "Purchase", &eventID, &order.ID, req)
+	}()
+	go func() {
+		defer wg.Done()
+		t.fireMeta(ctx, "Purchase", &eventID, &order.ID, req)
+	}()
+	wg.Wait()
 
 	// Update order with pixel info — use background context to prevent cancellation
 	_, err := t.pool.Exec(context.Background(),

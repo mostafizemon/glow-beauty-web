@@ -69,6 +69,13 @@ function getCookieValue(name: string): string {
   return "";
 }
 
+export function getMetaBrowserData() {
+  return {
+    fbp: getCookieValue("_fbp"),
+    fbc: getCookieValue("_fbc"),
+  };
+}
+
 function setCookie(name: string, value: string, maxAgeSeconds: number) {
   if (typeof document === "undefined" || !value) return;
   document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSeconds}; samesite=lax`;

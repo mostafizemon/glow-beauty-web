@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net"
@@ -63,6 +64,18 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 			purchaseEventID = parsedEventID
 		}
 	}
+	fbp := strings.TrimSpace(req.FBP)
+	if fbp == "" {
+		if cookie, err := r.Cookie("_fbp"); err == nil {
+			fbp = strings.TrimSpace(cookie.Value)
+		}
+	}
+	fbc := strings.TrimSpace(req.FBC)
+	if fbc == "" {
+		if cookie, err := r.Cookie("_fbc"); err == nil {
+			fbc = strings.TrimSpace(cookie.Value)
+		}
+	}
 
 	var orderItems []models.OrderItem
 	var subtotal float64
@@ -97,7 +110,7 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 			 LEFT JOIN product_images pi ON pi.product_id = p.id AND pi.is_primary = true
 			 WHERE p.id = $1`, req.BuyNowProductID, req.BuyNowVariantID,
 		).Scan(&item.ProductName, &productPrice, &variantName, &variantValue, &priceDelta, &imgURL)
-		
+
 		if err != nil {
 			writeJSON(w, http.StatusBadRequest, models.APIResponse{
 				Success: false, Error: "Buy now product not found",
@@ -284,7 +297,14 @@ func (h *OrdersHandler) PlaceOrder(w http.ResponseWriter, r *http.Request) {
 	order.Items = orderItems
 
 	// Fire Purchase immediately after a successful order placement.
-	go h.tracker.FirePurchase(r.Context(), &order)
+	purchaseUserData := map[string]interface{}{}
+	if fbp != "" {
+		purchaseUserData["fbp"] = fbp
+	}
+	if fbc != "" {
+		purchaseUserData["fbc"] = fbc
+	}
+	go h.tracker.FirePurchaseWithUserData(context.Background(), &order, purchaseUserData)
 
 	writeJSON(w, http.StatusCreated, models.APIResponse{
 		Success: true,
