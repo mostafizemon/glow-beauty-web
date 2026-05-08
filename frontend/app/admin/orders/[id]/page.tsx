@@ -64,8 +64,7 @@ export default function AdminOrderDetailPage() {
     setActionLoading("cancel");
     try {
       await api.patch(`/api/admin/orders/${id}/cancel`, { reason: cancelReason });
-      const hadPixel = order?.pixel_status === "purchase";
-      showToast(hadPixel ? "🚫 Order cancelled — Cancel pixel fired" : "🚫 Order cancelled — No pixel was needed");
+      showToast("🚫 Order cancelled");
       const res = await api.get<APIResponse<Order>>(`/api/admin/orders/${id}`);
       if (res.success && res.data) setOrder(res.data);
     } catch (err) {
@@ -251,10 +250,6 @@ export default function AdminOrderDetailPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fade-in">
             <h3 className="text-lg font-bold text-charcoal mb-3">Confirm Order?</h3>
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
-              <p className="text-sm text-amber-800 font-medium">⚠️ Purchase pixel fires when the customer places the order.</p>
-              <p className="text-xs text-amber-600 mt-1">Confirming updates the order status only. Cancel event can be sent later if needed.</p>
-            </div>
             <div className="flex gap-3">
               <button onClick={() => setShowConfirmModal(false)} className="btn-ghost flex-1">Cancel</button>
               <button onClick={confirmOrder} disabled={!!actionLoading} className="btn-success flex-1">
@@ -270,12 +265,6 @@ export default function AdminOrderDetailPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 animate-fade-in">
             <h3 className="text-lg font-bold text-charcoal mb-3">Cancel Order?</h3>
-            {order.pixel_status === "purchase" && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-sm text-red-800 font-medium">⚠️ A Cancel event will be fired to TikTok and Meta</p>
-                <p className="text-xs text-red-600 mt-1">Because the Purchase pixel was already sent for this order.</p>
-              </div>
-            )}
             <div className="mb-4">
               <label className="input-label">Reason (optional)</label>
               <textarea value={cancelReason} onChange={e => setCancelReason(e.target.value)} className="input min-h-[60px]" placeholder="Why is this being cancelled?" rows={2} />
